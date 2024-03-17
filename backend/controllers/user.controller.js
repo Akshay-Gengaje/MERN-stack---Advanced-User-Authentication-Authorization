@@ -1,6 +1,7 @@
 import User from "../models/user.models.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 const signup = async (req, res, next) => {
   const { name, email, password } = req?.body;
   console.log(name, email, password);
@@ -45,4 +46,24 @@ const login = async (req, res, next) => {
   }
 };
 
-export { signup, login };
+const verifyToken = async (req, res, next) => {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Token does not exist" });
+  jwt.verify(token, process.env.SECRTE_KEY, (err, user) => {
+    if (err) return res.status(401).json({ message: "Invalid Token" });
+    console.log(user.id);
+    req.id = user.id;
+    next();
+  });
+};
+
+const getUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.id, "-password");
+    if (!user) return res.status(404).json({ message: "User not found!" });
+    return res.status(200).json({ user });
+  } catch (error) {
+    console.error(error);
+  }
+};
+export { signup, login, verifyToken, getUser };
